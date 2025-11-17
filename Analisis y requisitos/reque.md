@@ -1,0 +1,39 @@
+Requerimientos de Trabajo Practico:
+A nivel de Interfaces
+1.	Las conexiones Point to Point (P2P) entre routers (ENLACES DE FIBRA) debe configurarse en subinterfaz .500 de cada interfaz física asociada (NO CONFIGURAR IP EN LAS INTERFACES FISICAS DE DICHO ENLACE EN LOS ROUTERS).
+2.	Configurar las redes locales de cada sitio según se observa en el archivo PKT (Red local de BS.AS VLAN20, Red Local de Córdoba Vlan 10, 20 y la red local de Mendoza Vlan 44,55 y 70)
+3.	Las conexiones entre ISP_LOCAL e ISP_INTERNACIONAL se configurar directamente en las interfaces.
+A nivel de Ruteo OSPF
+1.	Router BS.AS y el Router Córdoba deben levantar una vecindad OSPF Tipo Point To Point por en el enlace Point to Point que los conectada.
+2.	Router BS.AS y el Router Mendoza deben levantar una vecindad OSPF Point To Point por en el enlace Point to Point que los conectada.
+3.	Router Córdoba y el Router Mendoza deben levantar una vecindad OSPF Point To Point por en el enlace Point to Point que los conectada.
+4.	En el enlace compartido del switch SW_OSPF_BACKUP deben conectar por vlan 1000 a nivel de SW y subinterfaz .1000 para Routing On A Stick en los routers (NO CONFIGURAR IP EN LAS INTERFACES FISICAS DE DICHO ENLACE EN LOS ROUTERS) el mismo debe levantar una vecindad OSPF de tipo Broadcast entre los tres sitios.
+5.	Todas las vecindades de OSPF tanto en las conexiones tipo Point to Point, así como las conexiones tipo Broadcast deben propagar todas sus redes locales.
+6.	Configurar Interfaces de LAN LOCAL de cada Router como interfaz Pasiva.
+A Nivel de ruteo estático
+1.	Configurar Ruteo para salida a internet desde el router de BS.AS hacia ISP_LOCAL, configurar 2 rutas estáticas predeterminadas para el tráfico hacia internet. 
+2.	Configurar el ruteo estático para que el Router ISP_LOCAL y el Router ISP_INTERNACIONAL pueda dar comunicación de entre servicios.
+A nivel de STP
+1.	Configurar STP en todos los switches de LAN interna, el sw de core y distribución debe ser el root bridge de cada LAN.
+A nivel de WiFi
+1.	Configurar la red de WiFi para que pueda propagar 2 SSID (redes wifi) en vlans diferentes VLAN 44 para SSID INTERNOS y VLAN 55 para SSID INVITADOS.
+A nivel de NAT (BUENOS AIRES)
+1.	Configurar la salida a internet con las dos interfaces físicas hacia ISP_LOCAL, natear ambos tráficos con la IP de la interfaz que corresponda (Hacer NAT por traducción de puertos/Nat Por desborde).
+
+A nivel de NAT (Servicios Internet)
+1.	El WEB server debe salir nateando con la IP Externa 45.162.20.10 (Aplicar nat estático)
+2.	El DNS Server debe salir nateando con la IP Externa 1.1.1.1 (Aplicar nat estático)
+
+A nivel de ACL: 
+Solo la PC-BS-AS puede acceder al server FTP
+
+
+Nuevas notas del profesor:  
+Buenas tardes chicos como están, les corrijo un punto en la topología, en las conexiones que directas entre los router donde estaba agregado Subinterfaz .500. No configuren sub interfaces ahí, configuren directamente las ip en las interfaces físicas, esto para que les permitan configurar ospf tipo point to point. 
+
+Esto se debe a que packet tracert tiene una limitante con la configuración de OSPF en estas subinterfaces.
+
+Cualquier consulta estoy atento.
+
+Saludos.
+
