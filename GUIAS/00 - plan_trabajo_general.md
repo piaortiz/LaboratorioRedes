@@ -16,8 +16,8 @@
 ## Resumen por Fases
 | Fase | Alcance | Estimación | Dependencias | Estado (19/11) |
 |------|---------|------------|--------------|----------------|
-| 1 | ISP_LOCAL + Internet Cloud | 1-2 h | Ninguna | ⏳ Pendiente |
-| 2 | Router y Switch BS.AS (VLAN 30 + trunk) | 3-4 h | Fase 1 | ⏳ Pendiente |
+| 1 | ISP_LOCAL + Internet Cloud | 1-2 h | Ninguna | ✅ **COMPLETA** |
+| 2 | Router y Switch BS.AS (VLAN 30 + trunk) | 3-4 h | Fase 1 | ✅ **COMPLETA** |
 | 3 | Enlaces P2P y OSPF entre sitios | 4-6 h | Fases 1-2 (BS.AS operativo) | ⏳ Pendiente |
 | 4 | VLAN 1000 / SW_OSPF_BACKUP (Broadcast OSPF) | 1-2 h | Fase 3 | ⏳ Pendiente |
 | 5 | STP, WiFi y servicios locales (SSID, root bridges) | 2-3 h | Fases 2-4 | ⏳ Pendiente |
@@ -25,31 +25,65 @@
 
 Total estimado: **13-19 horas** según nivel de detalle de las pruebas y captura de evidencias.
 
-**Progreso actual: 0% - Proyecto desde cero con nuevos requerimientos**
+**Progreso actual: 33% - Fases 1 y 2 completadas (19/11/2025)**
 
 ---
 
-## Fase 1: ISP_LOCAL + Internet Cloud (1-2 h)
+## 🎉 Logros Recientes (19/11/2025)
+
+### ✅ Infraestructura Internet Operativa (Fase 1)
+- ISP_LOCAL y ISP_INTERNACIONAL configurados y conectados
+- Servidores DNS (192.168.100.2) y WEB (192.168.100.9) activos
+- Rutas estáticas hacia red Buenos Aires (192.168.30.0/24)
+- Conectividad Internet verificada
+
+### ✅ Segmento Buenos Aires Completo (Fase 2)
+- **PC-BS-AS:** Configurada en VLAN 30 (192.168.30.10/24)
+- **Switch SW-BS-AS:** VLANs 30/100/200 con trunk operativo
+- **Router BS.AS:** Router-on-a-Stick con 3 subinterfaces:
+  - G0/1.30: LAN (192.168.30.1/24)
+  - G0/1.100: WAN1 (42.25.25.1/29)
+  - G0/1.200: WAN2 (43.26.26.1/29)
+- **NAT overload:** Doble salida WAN configurada y funcional
+- **Rutas de retorno:** Configuradas en ISP_INTERNACIONAL para tráfico NAT bidireccional
+- **Conectividad total verificada:**
+  - ✅ PC-BS-AS → Gateway (192.168.30.1)
+  - ✅ PC-BS-AS → Servidores DNS/WEB (con NAT)
+  - ✅ PC-BS-AS → Internet (164.25.0.1 con NAT)
+  - ✅ Router BS.AS → ISP_LOCAL (ambos enlaces WAN)
+
+### 📋 Documentación Actualizada
+- Guía 01: Segmento WAN ✅
+- Guía 02: Segmento Buenos Aires ✅
+- Tickets de trabajo actualizados con evidencias
+- Plan de trabajo general actualizado
+
+### 🎯 Siguiente Paso
+**Fase 3:** Configurar enlaces P2P y OSPF entre Buenos Aires, Córdoba y Mendoza
+
+---
+
+## Fase 1: ISP_LOCAL + Internet Cloud (1-2 h) ✅ COMPLETA
 **Objetivo:** Dejar operativos los enlaces `G0/0` (Internet), `G0/1` y `G0/2` hacia BS.AS, y asegurar que el router `ISP_INTERNACIONAL` responda.
 
 **Guía detallada:** Ver `01 - guia_segmento_wan.md`
 
 Checklist:
-1. ☐ Configurar `ISP_LOCAL` con interfaces G0/0, G0/1, G0/2
-2. ☐ Crear rutas estáticas en ISP_LOCAL hacia **192.168.30.0/24** (red BS.AS)
-3. ☐ Configurar ruta por defecto hacia Internet (164.25.0.1)
-4. ☐ Configurar `ISP_INTERNACIONAL` (G0/0=164.25.0.1)
-5. ☐ Configurar `SW_MS_CORE` (VLAN 100) y conectar servidores
-6. ☐ Configurar servidores WEB y DNS con IPs internas (192.168.100.x)
-7. ☐ Activar servicios HTTP y DNS en servidores
-8. ☐ Verificar: `show ip interface brief`, `show ip route`, `ping 164.25.0.1`
-9. ☐ Documentar evidencias: capturas de configuración y pruebas
+1. ☑ Configurar `ISP_LOCAL` con interfaces G0/0, G0/1, G0/2
+2. ☑ Crear rutas estáticas en ISP_LOCAL hacia **192.168.30.0/24** (red BS.AS)
+3. ☑ Configurar ruta por defecto hacia Internet (164.25.0.1)
+4. ☑ Configurar `ISP_INTERNACIONAL` (G0/0=164.25.0.1)
+5. ☑ Configurar `SW_MS_CORE` (VLAN 100 y 101) y conectar servidores
+6. ☑ Configurar servidores WEB y DNS con IPs internas (192.168.100.x)
+7. ☑ Activar servicios HTTP y DNS en servidores
+8. ☑ Verificar: `show ip interface brief`, `show ip route`, `ping 164.25.0.1`
+9. ☑ Documentar evidencias: capturas de configuración y pruebas
 
-**Resultado esperado:** ISP_LOCAL e ISP_INTERNACIONAL operativos, listos para recibir tráfico desde BS.AS.
+**Resultado:** ✅ ISP_LOCAL e ISP_INTERNACIONAL operativos y verificados (19/11/2025)
 
 ---
 
-## Fase 2: Router y Switch BS.AS (3-4 h)
+## Fase 2: Router y Switch BS.AS (3-4 h) ✅ COMPLETA
 **Objetivo:** Habilitar la LAN (**VLAN 30**) y trunk hacia Router BS.AS. Configurar enlaces WAN hacia ISP_LOCAL.
 
 **⚠️ IMPORTANTE:** Según NUEVOSREQUERIMIENTOS, BS.AS usa VLAN 30 (red 192.168.30.0/24) para evitar conflicto con Córdoba.
@@ -57,20 +91,26 @@ Checklist:
 **Guía detallada:** Ver `02 - guia_segmento_bsas.md`
 
 Checklist:
-1. ☐ Configurar PC-BS-AS: IP 192.168.30.10/24, gateway 192.168.30.1, DNS 1.1.1.1
-2. ☐ Switch `SW-BS-AS`: Crear VLANs 30, 100, 200
-3. ☐ Configurar puerto Fa0/2 en modo access VLAN 30 (hacia PC)
-4. ☐ Configurar trunk Gi0/2 con VLANs 30,100,200, nativa VLAN 30 (hacia Router BS.AS)
-5. ☐ Router BS.AS: Crear subinterfaz G0/1.30 (VLAN 30)
-6. ☐ Asignar IP 192.168.30.1/24 a subinterfaz G0/1.30
-7. ☐ Configurar `ip nat inside` en G0/1.30
-8. ☐ Crear ACL base FTP_ONLY_PC (reglas se completarán en Fase 6)
-9. ☐ Configurar enlaces WAN hacia ISP_LOCAL (subinterfaces o físicas según diseño)
-10. ☐ Pruebas: `ping 192.168.30.10` desde router, `ping 192.168.30.1` desde PC
-11. ☐ Verificar trunk: `show interfaces trunk` en switch
-12. ☐ Documentar evidencias: configuraciones y pruebas
+1. ☑ Configurar PC-BS-AS: IP 192.168.30.10/24, gateway 192.168.30.1, DNS 1.1.1.1
+2. ☑ Switch `SW-BS-AS`: Crear VLANs 30, 100, 200
+3. ☑ Configurar puerto Fa0/2 en modo access VLAN 30 (hacia PC)
+4. ☑ Configurar trunk Gi0/2 con VLANs 30,100,200, nativa VLAN 30 (hacia Router BS.AS)
+5. ☑ Router BS.AS: Crear subinterfaz G0/1.30 (VLAN 30)
+6. ☑ Asignar IP 192.168.30.1/24 a subinterfaz G0/1.30
+7. ☑ Configurar `ip nat inside` en G0/1.30, `ip nat outside` en G0/1.100 y G0/1.200
+8. ☑ Crear ACL base FTP_ONLY_PC (reglas se completarán en Fase 6)
+9. ☑ Configurar subinterfaces WAN hacia ISP_LOCAL (G0/1.100 y G0/1.200)
+10. ☑ Configurar NAT overload en ambas salidas WAN con doble redundancia
+11. ☑ Configurar rutas estáticas hacia servidores y ruta por defecto
+12. ☑ **Configurar rutas de retorno en ISP_INTERNACIONAL (42.25.25.0/29 y 43.26.26.0/29)**
+13. ☑ Pruebas: `ping 192.168.30.10` desde router, `ping 192.168.30.1` desde PC
+14. ☑ Pruebas WAN: `ping 42.25.25.2`, `ping 43.26.26.2`, `ping 164.25.0.1`
+15. ☑ Pruebas NAT desde PC: `ping 192.168.100.2`, `ping 192.168.100.9`, `ping 164.25.0.1`
+16. ☑ Verificar trunk: `show interfaces trunk` en switch
+17. ☑ Verificar NAT: `show ip nat translations` y `show ip nat statistics`
+18. ☑ Documentar evidencias: configuraciones y pruebas
 
-**Resultado esperado:** LAN de BS.AS operativa en VLAN 30, PC puede comunicarse con el router.
+**Resultado:** ✅ Segmento Buenos Aires completamente funcional con LAN, WAN doble, NAT operativo y conectividad completa a Internet y servidores (19/11/2025)
 
 ---
 
