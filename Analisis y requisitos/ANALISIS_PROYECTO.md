@@ -13,9 +13,9 @@ Este proyecto implementa una red empresarial multi-sitio con **tres ubicaciones 
 #### 1. **Buenos Aires (BS.AS)** - Sitio Central
 - **Router Principal**: Conexión dual a ISP_LOCAL
 - **VLANs**: 
-  - VLAN 20 (Red Local BS.AS)
+  - **VLAN 30** (Red Local BS.AS) ⚠️ CAMBIO: antes era VLAN 20
 - **Dispositivos**:
-  - PC-BS-AS (192.168.0.0/24)
+  - PC-BS-AS (192.168.30.0/24)
 - **Función**: Gateway principal a Internet con NAT
 
 #### 2. **Córdoba** - Sitio Secundario
@@ -89,7 +89,7 @@ ISP_LOCAL (SP_LOCAL)
 **Direccionamiento WAN:**
 - VLAN 100: 81.26.24.0/29
 - VLAN 102: 68.69.85.0/24
-- LAN LOCAL: 192.168.20.0/24
+- LAN LOCAL BS.AS: **192.168.30.0/24** ⚠️ CAMBIO: antes era 192.168.20.0/24
 
 ---
 
@@ -98,14 +98,17 @@ ISP_LOCAL (SP_LOCAL)
 ### 1️⃣ INTERFACES
 
 #### Enlaces P2P entre Routers (FIBRA)
-- ✅ **ACTUALIZACIÓN DEL PROFESOR**: Configurar IPs directamente en interfaces físicas
-- ❌ ~~NO usar subinterfaz .500~~ (limitación de Packet Tracer)
-- ✅ Permitirá configurar OSPF tipo Point-to-Point correctamente
+- ✅ **⚠️ CAMBIO CRÍTICO DEL PROFESOR**: Configurar IPs directamente en interfaces físicas
+- ❌ **NO usar subinterfaz .500** (limitación de Packet Tracer con OSPF)
+- ✅ Permite configurar OSPF tipo Point-to-Point correctamente
+- 📄 Ver documento detallado: `CAMBIOS_CRITICOS_PROFESOR.md`
 
 #### Redes Locales (VLANs)
-- **BS.AS**: VLAN 20
-- **Córdoba**: VLAN 10, VLAN 20
-- **Mendoza**: VLAN 44, VLAN 55, VLAN 70
+- **BS.AS**: **VLAN 30** (192.168.30.0/24) ⚠️ CAMBIO: antes era VLAN 20
+- **Córdoba**: VLAN 10 (192.168.10.0/24), VLAN 20 (192.168.20.0/24)
+- **Mendoza**: VLAN 44 (192.168.44.0/24), VLAN 55 (192.168.55.0/24), VLAN 70 (192.168.70.0/24)
+
+**Razón del cambio:** Evitar conflicto de red 192.168.20.0/24 entre BS.AS y Córdoba
 
 #### Conexión ISP
 - Configurar IPs directamente en interfaces físicas entre ISP_LOCAL e ISP_INTERNACIONAL
@@ -136,6 +139,7 @@ ISP_LOCAL (SP_LOCAL)
 
 #### Salida a Internet (desde BS.AS)
 - Configurar **2 rutas estáticas predeterminadas** hacia ISP_LOCAL
+- **⚠️ NUEVO:** Las rutas deben tener **métricas diferentes** para evitar ECMP
 - Tráfico hacia Internet
 
 #### Comunicación ISP

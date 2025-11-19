@@ -1,6 +1,6 @@
 # Guía 02 · Segmento Buenos Aires (SW-BS-AS ↔ Router BS.AS ↔ ISP_LOCAL)
-**Actualización:** 17/11/2025  
-**Objetivo:** Energizar la LAN de Buenos Aires (VLAN 20), habilitar los enlaces WAN1/WAN2 hacia ISP_LOCAL, dejar configurado el NAT de doble salida y documentar evidencias para cerrar los requerimientos "Interfaces #2/#3", "Ruteo estático #1", "NAT Buenos Aires" y "ACL FTP" del documento `Analisis y requisitos/reque.md`.
+**Actualización:** 19/11/2025 ⚠️ CAMBIO CRÍTICO: VLAN 30  
+**Objetivo:** Energizar la LAN de Buenos Aires (**VLAN 30** según NUEVOSREQUERIMIENTOS), habilitar los enlaces WAN1/WAN2 hacia ISP_LOCAL, dejar configurado el NAT de doble salida y documentar evidencias para cerrar los requerimientos "Interfaces #2/#3", "Ruteo estático #1", "NAT Buenos Aires" y "ACL FTP" del documento `Analisis y requisitos/reque.md`.
 
 ---
 
@@ -14,12 +14,14 @@
 ---
 
 ## 1. Alcance y topología
-- **Inicio:** PC-BS-AS (192.168.20.10/24) conectada al `2960-24TT SW-BS-AS` por `Fa0/2` (acceso VLAN 20).
-- **Medio:** Switch con VLAN 20 (LAN), VLAN 100 (WAN1) y VLAN 200 (WAN2). Túneles:
-  - `Gi0/2` ↔ `Router BS.AS G0/1` (trunk LAN VLAN 20/100/200, nativa 20).
+- **Inicio:** PC-BS-AS (**192.168.30.10/24** ⚠️ CAMBIO) conectada al `2960-24TT SW-BS-AS` por `Fa0/2` (acceso **VLAN 30**).
+- **Medio:** Switch con **VLAN 30** (LAN), VLAN 100 (WAN1) y VLAN 200 (WAN2). Túneles:
+  - `Gi0/2` ↔ `Router BS.AS G0/1` (trunk LAN VLAN 30/100/200, nativa 30).
   - `Gi0/1` ↔ `ISP_LOCAL G0/1` (WAN1, ya configurado en guía 01).
   - `Fa0/24` ↔ `ISP_LOCAL G0/2` (WAN2).
-- **Fin:** Router BS.AS con `G0/1.20` para LAN, y WAN físicas pendientes de definir según requerimientos.
+- **Fin:** Router BS.AS con `G0/1.30` para LAN, y WAN físicas pendientes de definir según requerimientos.
+
+**⚠️ Razón del cambio:** Evitar conflicto de red 192.168.20.0/24 con Córdoba VLAN 20.
 
 ---
 
@@ -28,8 +30,8 @@
 2. Acceso por consola/SSH al switch y router.
 3. Usuario creó snapshot previo en `CONFIG POR DISP`.
 4. PC-BS-AS configurada:
-   - IP `192.168.20.10` /24
-   - Gateway `192.168.20.1`
+   - IP `192.168.30.10` /24 ⚠️ CAMBIO: antes era 192.168.20.10
+   - Gateway `192.168.30.1` ⚠️ CAMBIO: antes era 192.168.20.1
    - DNS `1.1.1.1`
    - Verificar `ipconfig /all` y guardar captura (ping a la puerta de enlace fallará hasta terminar la guía).
 
@@ -38,32 +40,35 @@
 ## 3. Paso a paso
 
 ### 3.1 Switch `SW-BS-AS` (Req. Interfaces #2)
-Objetivo: garantizar VLAN 20/100/200 y troncales correctas.
+Objetivo: garantizar VLAN 30/100/200 y troncales correctas.
 
 **Dispositivo:** `SW-BS-AS`
 ```
 conf t
- vlan 20
+ vlan 30
+  name LAN_BSAS
  vlan 100
+  name WAN1
  vlan 200
+  name WAN2
 !
 interface fa0/2
  description PC_BS_AS
  switchport mode access
- switchport access vlan 20
+ switchport access vlan 30
  spanning-tree portfast
 !
 interface gi0/2
  description Trunk_to_Router_BSAS_G0/1
  switchport mode trunk
- switchport trunk native vlan 20
- switchport trunk allowed vlan 20,100,200
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 30,100,200
 !
 interface fa0/24
  description Trunk_to_ISP_LOCAL_G0/2
  switchport mode trunk
- switchport trunk native vlan 20
- switchport trunk allowed vlan 20,100,200
+ switchport trunk native vlan 30
+ switchport trunk allowed vlan 30,100,200
 exit
 wr mem
 ```
@@ -85,17 +90,17 @@ interface range g0/1 - 2
 exit
 ```
 
-### 3.3 LAN Buenos Aires (VLAN 20) – Req. Interfaces #2
+### 3.3 LAN Buenos Aires (VLAN 30) – Req. Interfaces #2
 **Dispositivo:** `Router BS.AS`
 ```
 conf t
 interface g0/1
  no ip address
  no shutdown
-interface g0/1.20
- encapsulation dot1Q 20
- ip address 192.168.20.1 255.255.255.0
- description LAN_BSAS_VLAN20
+interface g0/1.30
+ encapsulation dot1Q 30
+ ip address 192.168.30.1 255.255.255.0
+ description LAN_BSAS_VLAN30
  ip nat inside
  no shutdown
 exit

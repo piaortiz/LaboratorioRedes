@@ -1,107 +1,206 @@
 # Plan de Trabajo Global TP Redes
-**Fecha:** 17/11/2025  
+**Fecha:** 19/11/2025 - ACTUALIZADO CON NUEVOS REQUERIMIENTOS  
 **Objetivo:** Ejecutar el trabajo práctico completo siguiendo el orden óptimo sugerido, con estimación de esfuerzo y checklist por fase. Los tiempos son aproximados suponiendo dedicación continua en Cisco Packet Tracer.
+
+**⚠️ CAMBIOS CRÍTICOS:**
+1. Buenos Aires usa **VLAN 30** (red 192.168.30.0/24) en lugar de VLAN 20
+2. Enlaces P2P entre routers: **interfaces físicas directas** (NO subinterfaces .500)
+3. Rutas estáticas con **métricas diferentes** para evitar ECMP
+
+**Referencias:**
+- `NUEVOSREQUERIMIENTOS`: Documento oficial con cambios del profesor
+- `Analisis y requisitos/CAMBIOS_CRITICOS_PROFESOR.md`: Análisis detallado de cambios
 
 ---
 
 ## Resumen por Fases
-| Fase | Alcance | Estimación | Dependencias | Estado (17/11) |
+| Fase | Alcance | Estimación | Dependencias | Estado (19/11) |
 |------|---------|------------|--------------|----------------|
-| 1 | ISP_LOCAL + Internet Cloud | 1-2 h | Ninguna | ✅ Completada: routers ISP_INTERNACIONAL/ISP_LOCAL y SW_MS_CORE operativos; pendientes de esta fase solo las pruebas que dependen de Router BS.AS (pings 42/43.x) |
-| 2 | Router y Switch BS.AS (LAN + trunk) | 3-4 h | Fase 1 | ✅ Completada: LAN VLAN 20 operativa, trunk Gi0/2↔Router BS.AS G0/1 funcional, ACL FTP creada; pendientes rutas/NAT para fases posteriores |
-| 3 | Enlaces P2P y OSPF entre sitios | 4-6 h | Fases 1-2 (BS.AS operativo) | ▶️ Próxima: configurar enlaces P2P y OSPF según notas profesor |
-| 4 | VLAN 1000 / SW_OSPF_BACKUP (Broadcast OSPF) | 1-2 h | Fase 3 | ⏳ Programada |
-| 5 | STP, WiFi y servicios locales (SSID, root bridges) | 2-3 h | Fases 2-4 | ⏳ Programada |
-| 6 | NAT Servicios Internet + pruebas integrales + documentación | 2 h | Todas las anteriores | ⏳ Programada |
+| 1 | ISP_LOCAL + Internet Cloud | 1-2 h | Ninguna | ⏳ Pendiente |
+| 2 | Router y Switch BS.AS (VLAN 30 + trunk) | 3-4 h | Fase 1 | ⏳ Pendiente |
+| 3 | Enlaces P2P y OSPF entre sitios | 4-6 h | Fases 1-2 (BS.AS operativo) | ⏳ Pendiente |
+| 4 | VLAN 1000 / SW_OSPF_BACKUP (Broadcast OSPF) | 1-2 h | Fase 3 | ⏳ Pendiente |
+| 5 | STP, WiFi y servicios locales (SSID, root bridges) | 2-3 h | Fases 2-4 | ⏳ Pendiente |
+| 6 | NAT Servicios Internet + pruebas integrales + documentación | 2 h | Todas las anteriores | ⏳ Pendiente |
 
 Total estimado: **13-19 horas** según nivel de detalle de las pruebas y captura de evidencias.
+
+**Progreso actual: 0% - Proyecto desde cero con nuevos requerimientos**
 
 ---
 
 ## Fase 1: ISP_LOCAL + Internet Cloud (1-2 h)
 **Objetivo:** Dejar operativos los enlaces `G0/0` (Internet), `G0/1` y `G0/2` hacia BS.AS, y asegurar que el router `ISP_INTERNACIONAL` responda.
 
-Checklist:
-1. `ISP_LOCAL` → `show ip interface brief` (G0/0-2 en `up/up`). ✅ Capturado.
-2. `ISP_LOCAL` → `ip route 0.0.0.0 0.0.0.0 164.25.0.1` + rutas a 192.168.20.0/24. ✅ Configurado (quedan sin probar las rutas hacia 42/43.x hasta que exista Router BS.AS).
-3. Pings: `164.25.0.1`, `42.25.25.1`, `43.26.26.1`. ✅ 164.25.0.1 responde; 42/43.x pendientes por falta de Router BS.AS (documentado en ticket).
-4. Internet Cloud: configurar `ISP_INTERNACIONAL` (G0/0=164.25.0.1), `SW_MS_CORE` (VLAN 100) y servidores con IPs internas + servicios activos. ✅ Terminado; IPs públicas se aplicarán luego vía NAT en Router BS.AS según guía 01.
-5. Evidencias: `show running-config`, `show ip route`, `show interfaces trunk`, pings `164.25.0.2`. ✅ Guardadas.
+**Guía detallada:** Ver `01 - guia_segmento_wan.md`
 
-> Estado actual fase 1: ISP_INTERNACIONAL y SW_MS_CORE quedan operativos y documentados; servidores WEB/DNS tienen IPs 192.168.100.9/2 con servicios activos, a la espera del NAT estático en la Fase 6.
+Checklist:
+1. ☐ Configurar `ISP_LOCAL` con interfaces G0/0, G0/1, G0/2
+2. ☐ Crear rutas estáticas en ISP_LOCAL hacia **192.168.30.0/24** (red BS.AS)
+3. ☐ Configurar ruta por defecto hacia Internet (164.25.0.1)
+4. ☐ Configurar `ISP_INTERNACIONAL` (G0/0=164.25.0.1)
+5. ☐ Configurar `SW_MS_CORE` (VLAN 100) y conectar servidores
+6. ☐ Configurar servidores WEB y DNS con IPs internas (192.168.100.x)
+7. ☐ Activar servicios HTTP y DNS en servidores
+8. ☐ Verificar: `show ip interface brief`, `show ip route`, `ping 164.25.0.1`
+9. ☐ Documentar evidencias: capturas de configuración y pruebas
+
+**Resultado esperado:** ISP_LOCAL e ISP_INTERNACIONAL operativos, listos para recibir tráfico desde BS.AS.
 
 ---
 
 ## Fase 2: Router y Switch BS.AS (3-4 h)
-**Objetivo:** Habilitar la LAN (VLAN 20) y trunk hacia Router BS.AS. NAT y rutas WAN se configurarán en fases posteriores según topología final.
+**Objetivo:** Habilitar la LAN (**VLAN 30**) y trunk hacia Router BS.AS. Configurar enlaces WAN hacia ISP_LOCAL.
+
+**⚠️ IMPORTANTE:** Según NUEVOSREQUERIMIENTOS, BS.AS usa VLAN 30 (red 192.168.30.0/24) para evitar conflicto con Córdoba.
+
+**Guía detallada:** Ver `02 - guia_segmento_bsas.md`
 
 Checklist:
-1. Switch `SW-BS-AS`: VLAN 20/100/200, puerto Fa0/2 (PC) access VLAN 20, trunk `Gi0/2` → Router BS.AS G0/1. ✅ Completado.
-2. `Router BS.AS`:
-   - Subinterfaz `G0/1.20` con IP 192.168.20.1/24 (`encapsulation dot1Q 20`, `ip nat inside`). ✅ Completado.
-   - ACL FTP: crear `FTP_ONLY_PC` con remark (reglas pendientes de IP servidor). ✅ Completado.
-3. Pruebas desde Router BS.AS: `ping 192.168.20.10` exitoso. ✅ Completado.
-4. Validación ISP_LOCAL: ruta a 192.168.20.0/24 vía 42.25.25.1 presente. ✅ Completado.
-5. Evidencias guardadas: `show ip int brief`, `show ip route`, `show interfaces trunk` (switch). ✅ Completado.
+1. ☐ Configurar PC-BS-AS: IP 192.168.30.10/24, gateway 192.168.30.1, DNS 1.1.1.1
+2. ☐ Switch `SW-BS-AS`: Crear VLANs 30, 100, 200
+3. ☐ Configurar puerto Fa0/2 en modo access VLAN 30 (hacia PC)
+4. ☐ Configurar trunk Gi0/2 con VLANs 30,100,200, nativa VLAN 30 (hacia Router BS.AS)
+5. ☐ Router BS.AS: Crear subinterfaz G0/1.30 (VLAN 30)
+6. ☐ Asignar IP 192.168.30.1/24 a subinterfaz G0/1.30
+7. ☐ Configurar `ip nat inside` en G0/1.30
+8. ☐ Crear ACL base FTP_ONLY_PC (reglas se completarán en Fase 6)
+9. ☐ Configurar enlaces WAN hacia ISP_LOCAL (subinterfaces o físicas según diseño)
+10. ☐ Pruebas: `ping 192.168.30.10` desde router, `ping 192.168.30.1` desde PC
+11. ☐ Verificar trunk: `show interfaces trunk` en switch
+12. ☐ Documentar evidencias: configuraciones y pruebas
 
-> Estado actual fase 2: Router BS.AS con LAN operativa (G0/1.20 up/up), trunk funcional hacia switch, ACL FTP base creada. Pendientes: configuración WAN directa y NAT cuando se defina esquema completo en fase OSPF.
+**Resultado esperado:** LAN de BS.AS operativa en VLAN 30, PC puede comunicarse con el router.
 
 ---
 
 ## Fase 3: Enlaces P2P y OSPF entre sitios (4-6 h)
-**Objetivo:** Configurar conectividad entre BS.AS ↔ Córdoba ↔ Mendoza respetando la nota del profesor (sin subinterfaces .500) y propagar redes locales.
+**Objetivo:** Configurar conectividad entre BS.AS ↔ Córdoba ↔ Mendoza y propagar redes locales mediante OSPF.
+
+**⚠️ CAMBIO CRÍTICO:** Configurar IPs **directamente en interfaces físicas** (NO usar subinterfaces .500) debido a limitación de Packet Tracer.
+
+**Guía detallada:** Ver `03 - guia_ospf_enlaces_p2p.md`
 
 Checklist:
-1. Configurar IPs directamente en interfaces físicas de cada enlace P2P.
-2. `router ospf <process>` en cada sitio:
-   - Tipo punto a punto en cada enlace (`ip ospf network point-to-point`).
-   - Anunciar redes locales (`network 192.168.x.0 0.0.0.255 area 0`).
-   - `passive-interface` en LAN.
-3. Verificar vecinos: `show ip ospf neighbor` en cada router.
-4. Pings cruzados entre routers (loopbacks o interfaces WAN) para validar SPF.
-5. Documentar `show ip route` mostrando rutas OSPF (O) hacia las LAN remotas.
+1. ☐ Configurar switches y routers de Córdoba (VLANs 10, 20)
+2. ☐ Configurar switches y routers de Mendoza (VLANs 44, 55, 70)
+3. ☐ Enlace P2P BS.AS ↔ Córdoba: IPs directas en interfaces físicas (ej: 10.10.1.9/30 y 10.10.1.10/30)
+4. ☐ Enlace P2P BS.AS ↔ Mendoza: IPs directas en interfaces físicas (ej: 10.10.1.1/30 y 10.10.1.2/30)
+5. ☐ Enlace P2P Córdoba ↔ Mendoza: IPs directas en interfaces físicas (ej: 10.10.1.17/30 y 10.10.1.18/30)
+6. ☐ Configurar `ip ospf network point-to-point` en cada interfaz P2P
+7. ☐ Configurar `router ospf 1` en cada sitio
+8. ☐ Anunciar redes locales: BS.AS (192.168.30.0/24), Córdoba (192.168.10.0/24, 192.168.20.0/24), Mendoza (192.168.44.0/24, 192.168.55.0/24, 192.168.70.0/24)
+9. ☐ Anunciar redes P2P en OSPF
+10. ☐ Configurar interfaces pasivas en LANs locales
+11. ☐ Configurar 2 rutas estáticas en BS.AS hacia ISP_LOCAL con **métricas diferentes**:
+    - `ip route 0.0.0.0 0.0.0.0 42.25.25.2 1`
+    - `ip route 0.0.0.0 0.0.0.0 43.26.26.2 10`
+12. ☐ Configurar `default-information originate` en Router BS.AS
+13. ☐ Verificar vecindades: `show ip ospf neighbor` (estado FULL, tipo P2P)
+14. ☐ Verificar rutas: `show ip route` (rutas OSPF "O" y estáticas "S*")
+15. ☐ Pruebas de conectividad entre todos los sitios
+16. ☐ Documentar evidencias
+
+**Resultado esperado:** Todos los sitios conectados vía OSPF, ruta por defecto propagada desde BS.AS.
 
 ---
 
 ## Fase 4: VLAN 1000 / SW_OSPF_BACKUP (1-2 h)
-**Objetivo:** Implementar el enlace compartido en broadcast que une los tres routers mediante la VLAN 1000.
+**Objetivo:** Implementar red de respaldo (broadcast) entre los tres routers mediante VLAN 1000.
+
+**✅ NOTA:** Esta configuración SÍ usa subinterfaces .1000 (no afectada por el cambio del profesor).
+
+**Guía detallada:** Ver sección 3.1 de `03 - guia_ospf_enlaces_p2p.md`
 
 Checklist:
-1. Crear VLAN 1000 en `SW_OSPF_BACKUP`, puertos configurados como trunk/access según corresponda.
-2. En cada router, subinterfaz `.1000` con `encapsulation dot1Q 1000` e IP correcta.
-3. `ip ospf network broadcast` y, si se necesita, `ip ospf priority` para definir DR/BDR.
-4. `show ip ospf neighbor` debe mostrar relaciones de tipo BDR/DR entre los tres routers.
-5. Pruebas: `ping` entre las subinterfaces `.1000` y verificación de estabilidad (sin cambios de DR frecuentes).
+1. ☐ Configurar `SW_OSPF_BACKUP`: crear VLAN 1000
+2. ☐ Configurar puertos del switch en modo access VLAN 1000 hacia cada router
+3. ☐ Router BS.AS: subinterfaz Fa0/22.1000 con IP 172.20.10.1/29
+4. ☐ Router Córdoba: subinterfaz Fa0/24.1000 con IP 172.20.10.2/29
+5. ☐ Router Mendoza: subinterfaz Fa0/23.1000 con IP 172.20.10.3/29
+6. ☐ Configurar `encapsulation dot1Q 1000` en cada subinterfaz
+7. ☐ NO configurar IP en interfaces físicas (Fa0/22, Fa0/24, Fa0/23)
+8. ☐ Configurar `ip ospf network broadcast` en cada subinterfaz .1000
+9. ☐ Opcional: Configurar `ip ospf priority` para control de DR/BDR
+10. ☐ Anunciar red 172.20.10.0/29 en OSPF de cada router
+11. ☐ Verificar vecindades: `show ip ospf neighbor` (tipo DR/BDR/DROTHER)
+12. ☐ Probar conectividad: `ping` entre subinterfaces .1000
+13. ☐ Verificar estabilidad (no cambios frecuentes de DR)
+14. ☐ Documentar evidencias
+
+**Resultado esperado:** Red de respaldo operativa, vecindades OSPF tipo Broadcast establecidas.
 
 ---
 
 ## Fase 5: STP, WiFi y servicios locales (2-3 h)
-**Objetivo:** Cumplir STP (core como root bridge), configurar SSID en VLAN 44/55 y afinar servicios internos.
+**Objetivo:** Configurar STP (switches Core como root bridge), WiFi dual-SSID y servicios DHCP.
 
 Checklist:
-1. Switches de cada LAN: `spanning-tree vlan <id> priority <value>` para fijar root/secondary.
-2. Access points / WLC (según PKT): asignar SSID `INTERNOS` → VLAN 44, `INVITADOS` → VLAN 55.
-3. DHCP/Reservas según VLAN (si aplica).
-4. Pruebas: dispositivos WiFi conectándose a cada SSID con la VLAN correcta (`ipconfig` para verificar).
-5. Capturas de `show spanning-tree vlan` y configuración de los APs.
+1. ☐ STP Buenos Aires: Configurar SW Core como root bridge para VLANs 30,100,200
+2. ☐ STP Córdoba: Configurar SW_CORE_DS_CORO como root bridge para VLANs 10,20
+3. ☐ STP Mendoza: Configurar SW_CORE_DS_MEND como root bridge para VLANs 44,55,70
+4. ☐ Verificar: `show spanning-tree vlan <id>` en cada switch
+5. ☐ Configurar Access Point en Mendoza con IP 192.168.70.3
+6. ☐ Crear SSID "INTERNOS" asociado a VLAN 44
+7. ☐ Crear SSID "INVITADOS" asociado a VLAN 55
+8. ☐ Configurar VLAN 70 como management del AP
+9. ☐ Configurar servidor DHCP para VLANs necesarias (opcional según diseño)
+10. ☐ Probar conectividad WiFi: laptop conectada a SSID-INTERNOS obtiene IP en VLAN 44
+11. ☐ Probar conectividad WiFi: laptop conectada a SSID-INVITADOS obtiene IP en VLAN 55
+12. ☐ Documentar configuración de AP y pruebas
+
+**Resultado esperado:** STP configurado, WiFi operativo con segmentación correcta.
 
 ---
 
 ## Fase 6: NAT Servicios Internet, pruebas finales y documentación (2 h)
-**Objetivo:** Terminar NAT estático para WEB/DNS, validar acceso desde LAN e Internet, y cerrar evidencias/tickets.
+**Objetivo:** Configurar NAT para salida a Internet y servicios públicos, implementar ACL, realizar pruebas integrales.
 
-Checklist:
-1. En router de servicios (ISP_INTERNACIONAL o firewall según diseño):
-   - `ip nat inside source static 192.168.10.9 45.162.20.10`
-   - `ip nat inside source static 192.168.100.2 1.1.1.1`
-2. Desde PC-BS-AS: `nslookup www.consultas.labo.com.ar 1.1.1.1`, `ping 45.162.20.10`.
-3. Desde servidores: comprobar salida a Internet (`ping 164.25.0.2` y destinos públicos).
-4. Revisión final de ACLs para asegurar que solo la PC autorizada accede al FTP.
-5. Documentar todo en `ticket_trabajo_practico.md`: evidencias por fase, comandos ejecutados, resultados.
+Checklist NAT:
+1. ☐ Configurar NAT PAT en Router BS.AS para salida a Internet:
+   - Ambas interfaces hacia ISP_LOCAL como `ip nat outside`
+   - Subinterfaz G0/1.30 como `ip nat inside`
+   - NAT por traducción de puertos (PAT/desborde) usando IP de cada interfaz
+2. ☐ Configurar NAT estático para WEB Server: IP interna → 45.162.20.10
+3. ☐ Configurar NAT estático para DNS Server: IP interna → 1.1.1.1
+
+Checklist ACL:
+4. ☐ Configurar ACL extendida FTP_ONLY_PC
+5. ☐ Permitir: PC-BS-AS (192.168.30.10) → FTP Server puerto 21
+6. ☐ Denegar: Todos los demás → FTP Server
+7. ☐ Aplicar ACL en interfaz/dirección correcta
+
+Checklist Pruebas:
+8. ☐ Desde PC-BS-AS: `ping 1.1.1.1`, `ping 45.162.20.10`
+9. ☐ Desde PC-BS-AS: `nslookup www.consultas.labo.com.ar 1.1.1.1`
+10. ☐ Desde PC-BS-AS: acceso HTTP a 45.162.20.10
+11. ☐ Desde PC-BS-AS: acceso FTP a servidor FTP (✅ debe funcionar)
+12. ☐ Desde PC-Cordoba: acceso FTP a servidor FTP (❌ debe fallar)
+13. ☐ Desde cualquier PC: `ping` a sitios remotos vía OSPF
+14. ☐ Verificar tablas NAT: `show ip nat translations`
+
+Checklist Documentación:
+15. ☐ Capturar todas las configuraciones finales (`show run`)
+16. ☐ Capturar tablas de ruteo de todos los routers
+17. ☐ Capturar vecindades OSPF
+18. ☐ Capturar pruebas exitosas y fallidas
+19. ☐ Completar `ticket_trabajo_practico.md` con todas las evidencias
+20. ☐ Revisar que todos los requerimientos están cumplidos
+
+**Resultado esperado:** Proyecto completamente funcional y documentado.
 
 ---
 
 ## Seguimiento y Actualización
-- Usa este plan como checklist maestro. Marca cada ítem cuando tengas las pruebas guardadas.
+- Usa este plan como checklist maestro
+- Marca cada ítem (☐ → ☑) cuando esté completado y probado
+- Documenta evidencias en `CONFIG POR DISP` y `ticket_trabajo_practico.md`
+- Consulta las guías detalladas (01, 02, 03) para cada fase
+- Ante dudas, revisar `CAMBIOS_CRITICOS_PROFESOR.md`
+
+---
+
+**Última actualización:** 19/11/2025  
+**Estado del proyecto:** Reiniciado con nuevos requerimientos - 0% completado
 - Después de cada fase, actualiza `ticket_trabajo_practico.md` con fecha, responsable y evidencias adjuntas.
 - Si aparece una corrección del profesor, regresa a la fase correspondiente, ajusta y vuelve a ejecutar las verificaciones señaladas.

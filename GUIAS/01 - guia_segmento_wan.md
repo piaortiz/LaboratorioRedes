@@ -1,24 +1,37 @@
-# Guía de Configuración Segmento WAN BS.AS ↔ ISP_LOCAL ↔ Internet
-**Fecha:** 17/11/2025  
-**Objetivo:** Configurar el tramo mostrado (Switch BS.AS → Router ISP_LOCAL → Internet) respetando los requerimientos "Interfaces #3", "Ruteo estático #1/#2" y "NAT Buenos Aires #1" de `reque.md`.
+# Guía 01 · Segmento WAN (ISP_LOCAL + Internet Cloud)
+**Fecha:** 19/11/2025 - ACTUALIZADA CON NUEVOS REQUERIMIENTOS  
+**Fase:** 1 de 6  
+**Objetivo:** Configurar la infraestructura de Internet (ISP_INTERNACIONAL, ISP_LOCAL, servidores) lista para recibir tráfico desde BS.AS.
+
+**⚠️ CAMBIOS IMPORTANTES:**
+- Buenos Aires usa red **192.168.30.0/24** (VLAN 30), no 192.168.20.0/24
 
 **Referencias:**
-- `Analisis y requisitos/reque.md`: lineamientos oficiales del TP.
-- `Analisis y requisitos/notasprofeso`: reunión 14-11-2025 confirma que todas las PC deben llegar a Internet/DNS, NAT estático para servidores (WEB=45.162.20.10, DNS=1.1.1.1), y que la ruta por defecto a Internet se propagará vía OSPF en fases posteriores (no configurar manualmente en cada router interno).
+- `NUEVOSREQUERIMIENTOS`: Documento oficial del profesor
+- `Analisis y requisitos/CAMBIOS_CRITICOS_PROFESOR.md`: Análisis detallado de cambios
+- `00 - plan_trabajo_general.md`: Plan maestro del proyecto
 
 ---
 
-## 1. Alcance del Segmento
-- **Inicio:** PC-BS-AS conectada al switch `2960-24TT SW-BS-AS`.
-- **Medio:** Tránsito por el switch hacia los enlaces WAN1 (VLAN 100, 42.25.25.0/29) y WAN2 (VLAN 200, 43.26.26.0/29) que llegan al router `2911 ISP_LOCAL`.
-- **Fin:** Enlace serie 164.25.0.0/29 hacia la nube de Internet.
-- **Servicios involucrados:** Acceso LAN, trunk en el switch, direccionamiento WAN en ISP_LOCAL, ruteo estático y conexión a Internet.
+## 1. Alcance de la Fase
+Esta guía configura la infraestructura de salida a Internet que será utilizada por todos los sitios (Buenos Aires, Córdoba, Mendoza).
+
+**Dispositivos a configurar:**
+1. **ISP_INTERNACIONAL** (Router 2911): Gateway hacia Internet
+2. **ISP_LOCAL** (Router 2911): Proveedor local que conecta con BS.AS
+3. **SW_MS_CORE** (Switch 2960): Switch de servicios en la nube de Internet
+4. **Servidores**: WEB Server y DNS Server con servicios activos
+
+**Redes involucradas:**
+- Internet: 164.25.0.0/29 (ISP_INTERNACIONAL ↔ ISP_LOCAL)
+- Servicios internos: 192.168.100.0/24 (servidores WEB/DNS)
+- Red BS.AS: 192.168.30.0/24 (rutas estáticas hacia esta red)
 
 ---
 
 ## 2. Prerrequisitos
-1. VLAN 20 lista para la LAN y disponibilidad de los IDs 100/200 para WAN (Interfaces #2/#3).  
-2. PC-BS-AS con IP `192.168.20.10/24`, gateway `192.168.20.1`, DNS `1.1.1.1`.  
+1. **VLAN 30** lista para la LAN ⚠️ CAMBIO: antes era VLAN 20, y disponibilidad de los IDs 100/200 para WAN (Interfaces #2/#3).  
+2. PC-BS-AS con IP `192.168.30.10/24`, gateway `192.168.30.1`, DNS `1.1.1.1`. ⚠️ CAMBIO: antes era 192.168.20.x  
 3. Identificar puertos físicos usados: Fa0/2 (PC→switch), **G0/2 del switch** ↔ **G0/1 del ISP_LOCAL** (WAN1), **Fa0/24 del switch** ↔ **G0/2 del ISP_LOCAL** (WAN2), y G0/0 del ISP_LOCAL hacia Internet.  
 4. Credenciales de acceso al switch y al ISP_LOCAL.
 
@@ -30,7 +43,7 @@
 1. **Crear/nombrar VLANs necesarias**
 ```
 conf t
-vlan 20
+vlan 30
  name LAN_BSAS
 vlan 100
  name WAN1
@@ -47,7 +60,7 @@ conf t
 interface fa0/2
  description PC_BSAS
  switchport mode access
- switchport access vlan 20
+ switchport access vlan 30
  spanning-tree portfast
 end
 ```
@@ -58,14 +71,14 @@ conf t
 interface g0/2
  description Uplink_to_ISP_LOCAL_G0_1
  switchport mode trunk
- switchport trunk allowed vlan 20,100,200
- switchport trunk native vlan 20
+ switchport trunk allowed vlan 30,100,200
+ switchport trunk native vlan 30
 !
 interface fa0/24
  description Uplink_to_ISP_LOCAL_G0_2
  switchport mode trunk
- switchport trunk allowed vlan 20,100,200
- switchport trunk native vlan 20
+ switchport trunk allowed vlan 30,100,200
+ switchport trunk native vlan 30
 end
 wr mem
 show interfaces trunk
@@ -91,8 +104,8 @@ interface g0/2
  ip address 43.26.26.2 255.255.255.248
  no shutdown
 !
-ip route 192.168.20.0 255.255.255.0 42.25.25.1
-ip route 192.168.20.0 255.255.255.0 43.26.26.1
+ip route 192.168.30.0 255.255.255.0 42.25.25.1
+ip route 192.168.30.0 255.255.255.0 43.26.26.1
 ip route 0.0.0.0 0.0.0.0 164.25.0.1
 end
 wr mem
@@ -108,9 +121,9 @@ wr mem
 3. **Configurar enlaces hacia BS.AS:**
 	- `interface g0/1` ➜ `description WAN1_from_BSAS` ➜ `ip address 42.25.25.2 255.255.255.248` ➜ `no shutdown`.
 	- `interface g0/2` ➜ `description WAN2_from_BSAS` ➜ `ip address 43.26.26.2 255.255.255.248` ➜ `no shutdown`.
-4. **Definir rutas estáticas:**
-	- `ip route 192.168.20.0 255.255.255.0 42.25.25.1`
-	- `ip route 192.168.20.0 255.255.255.0 43.26.26.1`
+4. **Definir rutas estáticas (⚠️ CAMBIO: red 192.168.30.0/24):**
+	- `ip route 192.168.30.0 255.255.255.0 42.25.25.1`
+	- `ip route 192.168.30.0 255.255.255.0 43.26.26.1`
 	- `ip route 0.0.0.0 0.0.0.0 164.25.0.1`
 5. **Verificar:** `show ip int brief`, `show ip route`, `ping 42.25.25.1`, `ping 43.26.26.1`, `ping 164.25.0.1`.
 6. **Guardar cambios:** `wr mem`.

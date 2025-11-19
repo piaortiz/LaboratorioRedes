@@ -8,14 +8,15 @@
 - `GUIAS/01 - guia_segmento_wan.md`: ISP_LOCAL e ISP_INTERNACIONAL operativos.
 - `GUIAS/02 - guia_segmento_bsas.md`: LAN Buenos Aires (VLAN 20) funcional.
 - `Analisis y requisitos/reque.md`: lineamientos OSPF área única, vecindades P2P y broadcast.
-  - **Requerimiento original (MODIFICADO):** "Las conexiones P2P entre routers debe configurarse en subinterfaz .500"
-  - **CORRECCIÓN DEL PROFESOR (al final del mismo archivo):** "No configuren sub interfaces ahí, configuren directamente las ip en las interfaces físicas, esto para que les permitan configurar ospf tipo point to point. Esto se debe a que packet tracert tiene una limitante con la configuración de OSPF en estas subinterfaces."
+  - **⚠️ CAMBIO CRÍTICO DEL PROFESOR:** Las conexiones P2P entre routers (ENLACES DE FIBRA) deben configurarse **directamente en interfaces físicas** (NO usar subinterfaces .500).
+  - **Razón:** Packet Tracer tiene limitación con OSPF en subinterfaces P2P.
+- `Analisis y requisitos/CAMBIOS_CRITICOS_PROFESOR.md`: documento detallado con análisis completo del cambio.
 - `Analisis y requisitos/notasprofeso`: reunión 14-11-2025 confirma:
   - **Enlaces P2P router↔router**: IP directa en interfaz física (no subinterfaces .500), por limitación Packet Tracer.
   - **Red backup `SW_OSPF_BACKUP`**: VLAN 1000 con subinterfaz .1000 (Router-on-a-Stick), vecindad OSPF tipo broadcast (según reque.md punto 4 OSPF: "NO CONFIGURAR IP EN LAS INTERFACES FISICAS DE DICHO ENLACE").
   - **OSPF área única**, manipular costos para un solo path por destino (no 3 caminos simultáneos).
   - **Propagación de default** con `default-information originate` desde BS.AS (no configurar manual en cada router).
-  - **Córdoba VLAN 30**: cambiar VLAN 20 a VLAN 30 para evitar overlap con BS.AS.
+  - **Rutas estáticas en BS.AS**: 2 rutas predeterminadas con métricas diferentes para evitar ECMP.
 - `GUIAS/ticket_trabajo_practico.md`: documentar evidencias Fase 3.
 
 ---
@@ -31,18 +32,18 @@ Según imagen adjunta y corrección del profesor:
 | P2P-2 | BS.AS | Gig0/1/0 | 10.10.1.1/30 | MENDOZA | Gig0/0/0 | 10.10.1.2/30 | 10.10.1.0/30 |
 | P2P-3 | CORDOBA | Gig0/2 | 10.10.1.17/30 | MENDOZA | Gig0/1/0 | 10.10.1.18/30 | 10.10.1.16/30 |
 
-> **Importante:** Aunque la imagen muestra "Subinterfaz .500", el profesor aclaró que se debe configurar **IP directa en la interfaz física** para que OSPF point-to-point funcione en Packet Tracer.
+> **⚠️ CRÍTICO:** Configurar IPs **directamente en las interfaces físicas** (NO usar subinterfaces .500). Esta es una corrección del profesor para que OSPF point-to-point funcione correctamente en Packet Tracer.
 
 ### 1.2 Red de Backup (Broadcast - VLAN 1000)
 Switch `SW_OSPF_BACKUP` conecta los tres routers mediante VLAN 1000:
 
 | Router | Interfaz física | Subinterfaz | IP | VLAN | Red |
 |--------|----------------|-------------|-----|------|-----|
-| BS.AS | Fa0/22 (hacia switch) | Fa0/22 (no usar sub) | Ver nota* | 1000 | 172.20.10.0/29 |
-| CORDOBA | Fa0/24 | Fa0/24 (no usar sub) | Ver nota* | 1000 | 172.20.10.0/29 |
-| MENDOZA | Fa0/23 | Fa0/23 (no usar sub) | Ver nota* | 1000 | 172.20.10.0/29 |
+| BS.AS | Fa0/22 (hacia switch) | Fa0/22.1000 | 172.20.10.1/29 | 1000 | 172.20.10.0/29 |
+| CORDOBA | Fa0/24 | Fa0/24.1000 | 172.20.10.2/29 | 1000 | 172.20.10.0/29 |
+| MENDOZA | Fa0/23 | Fa0/23.1000 | 172.20.10.3/29 | 1000 | 172.20.10.0/29 |
 
-> **Nota aclaratoria:** La imagen indica subinterfaz .1000, pero dado que la interfaz del switch está en VLAN 1000 nativa y los routers 2911 en Packet Tracer a veces requieren configuración específica, validar si se usa IP directa en Fa0/x o subinterfaz .1000 según el comportamiento del simulador. Por coherencia con las notas del profesor (Router-on-a-Stick para segmento compartido), se recomienda **subinterfaz .1000** aquí.
+> **✅ IMPORTANTE:** Esta configuración SÍ usa subinterfaz .1000 (Router-on-a-Stick) porque es un enlace compartido en switch. NO confundir con los enlaces P2P de fibra que van directo en interfaces físicas. Los requerimientos especifican: "NO CONFIGURAR IP EN LAS INTERFACES FÍSICAS DE DICHO ENLACE" para SW_OSPF_BACKUP.
 
 **Direccionamiento sugerido VLAN 1000:**
 - BS.AS: 172.20.10.1/29
@@ -52,25 +53,25 @@ Switch `SW_OSPF_BACKUP` conecta los tres routers mediante VLAN 1000:
 ### 1.3 Redes LAN a propagar por OSPF
 | Sitio | VLAN | Red | Gateway | Estado |
 |-------|------|-----|---------|--------|
-| BS.AS | 20 | 192.168.20.0/24 | 192.168.20.1 (G0/1.20) | ✅ Operativa (Fase 2) |
+| BS.AS | **30** ⚠️ | **192.168.30.0/24** | 192.168.30.1 (G0/1.30) | ⚠️ Requiere reconfig (Fase 2) |
 | CORDOBA | 10 | 192.168.10.0/24 | 192.168.10.1 | ⏳ Pendiente config |
-| CORDOBA | 20 | 192.168.20.0/24 | 192.168.20.1 | ⚠️ Conflicto con BS.AS* |
+| CORDOBA | 20 | 192.168.20.0/24 | 192.168.20.1 | ✅ Sin conflicto ahora |
 | MENDOZA | 44 | 192.168.44.0/24 | 192.168.44.1 | ⏳ Pendiente config |
 | MENDOZA | 55 | 192.168.55.0/24 | 192.168.55.1 | ⏳ Pendiente config |
 | MENDOZA | 70 | 192.168.70.0/24 | 192.168.70.1 | ⏳ Pendiente config |
 
-> **Conflicto detectado:** Según `ANALISIS_PROYECTO.md`, tanto BS.AS como Córdoba usan 192.168.20.0/24. El profesor mencionó en `notasprofeso` que esto requeriría NAT. **Recomendación:** cambiar Córdoba VLAN 20 a VLAN 30 con red 192.168.30.0/24 antes de continuar, o validar con el docente.
+> **✅ Conflicto resuelto:** Según `NUEVOSREQUERIMIENTOS`, BS.AS ahora usa **VLAN 30** con red **192.168.30.0/24**, eliminando el conflicto con Córdoba VLAN 20. Ver `CAMBIOS_CRITICOS_PROFESOR.md` para detalles completos.
 
 ---
 
 ## 2. Prerrequisitos
-1. Fases 1 y 2 completadas: ISP_LOCAL operativo, Router BS.AS con LAN funcional.
-2. Cableado físico verificado según imagen:
+1. **⚠️ CRÍTICO:** Reconfigurar Fase 2 con VLAN 30 antes de continuar (ver guía 02 actualizada).
+2. Fases 1 y 2 actualizadas: ISP_LOCAL operativo con rutas a 192.168.30.0/24, Router BS.AS con LAN en VLAN 30.
+3. Cableado físico verificado según imagen:
    - Enlaces P2P fibra conectados (Gig0/0/0, Gig0/1/0, Gig0/2).
    - Cables al `SW_OSPF_BACKUP` desde Fa0/22 (BS.AS), Fa0/24 (CORDOBA), Fa0/23 (MENDOZA).
-3. Acceso por consola/SSH a los tres routers y al switch de backup.
-4. Snapshot previo de configuraciones en `CONFIG POR DISP`.
-5. Resolver conflicto VLAN 20 Córdoba vs BS.AS antes de propagar rutas.
+4. Acceso por consola/SSH a los tres routers y al switch de backup.
+5. Snapshot previo de configuraciones en `CONFIG POR DISP`.
 
 ---
 
@@ -158,8 +159,8 @@ conf t
 router ospf 1
  router-id 1.1.1.1
  log-adjacency-changes
- passive-interface gig0/1.20
- network 192.168.20.0 0.0.0.255 area 0
+ passive-interface gig0/1.30
+ network 192.168.30.0 0.0.0.255 area 0
  network 10.10.1.8 0.0.0.3 area 0
  network 10.10.1.0 0.0.0.3 area 0
  network 172.20.10.0 0.0.0.7 area 0
@@ -181,6 +182,8 @@ interface fa0/22.1000
 end
 wr mem
 ```
+
+> **⚠️ CAMBIO:** Red BS.AS es 192.168.30.0/24 (VLAN 30), interfaz pasiva es G0/1.30
 
 > **Costos:** P2P con costo 10 (preferidos), backup con costo 50 (secundario). Ajustar según necesidad de balanceo.
 
