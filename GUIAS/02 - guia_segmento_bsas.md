@@ -231,12 +231,12 @@ Para alcanzar los servidores DNS y WEB a través del ISP_LOCAL:
 configure terminal
 !
 ! Ruta hacia red de servidores (VLAN 100: 192.168.100.0/29)
-ip route 192.168.100.0 255.255.255.248 42.25.25.2
-ip route 192.168.100.0 255.255.255.248 43.26.26.2
+ip route 192.168.100.0 255.255.255.248 42.25.25.2 1
+ip route 192.168.100.0 255.255.255.248 43.26.26.2 10
 !
-! Ruta por defecto hacia Internet
-ip route 0.0.0.0 0.0.0.0 42.25.25.2
-ip route 0.0.0.0 0.0.0.0 43.26.26.2
+! Ruta por defecto hacia Internet (métricas diferentes para evitar ECMP)
+ip route 0.0.0.0 0.0.0.0 42.25.25.2 1
+ip route 0.0.0.0 0.0.0.0 43.26.26.2 10
 exit
 ```
 

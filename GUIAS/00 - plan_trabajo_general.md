@@ -18,14 +18,14 @@
 |------|---------|------------|--------------|----------------|
 | 1 | ISP_LOCAL + Internet Cloud | 1-2 h | Ninguna | ✅ **COMPLETA** |
 | 2 | Router y Switch BS.AS (VLAN 30 + trunk) | 3-4 h | Fase 1 | ✅ **COMPLETA** |
-| 3 | Enlaces P2P y OSPF entre sitios | 4-6 h | Fases 1-2 (BS.AS operativo) | ⏳ Pendiente |
-| 4 | VLAN 1000 / SW_OSPF_BACKUP (Broadcast OSPF) | 1-2 h | Fase 3 | ⏳ Pendiente |
+| 3 | Enlaces P2P y OSPF entre sitios | 4-6 h | Fases 1-2 (BS.AS operativo) | ✅ **COMPLETA** |
+| 4 | VLAN 1000 / SW_OSPF_BACKUP (Broadcast OSPF) | 1-2 h | Fase 3 | ✅ **COMPLETA** |
 | 5 | STP, WiFi y servicios locales (SSID, root bridges) | 2-3 h | Fases 2-4 | ⏳ Pendiente |
 | 6 | NAT Servicios Internet + pruebas integrales + documentación | 2 h | Todas las anteriores | ⏳ Pendiente |
 
 Total estimado: **13-19 horas** según nivel de detalle de las pruebas y captura de evidencias.
 
-**Progreso actual: 33% - Fases 1 y 2 completadas (19/11/2025)**
+**Progreso actual: 67% - Fases 1, 2, 3 y 4 completadas (19/11/2025)**
 
 ---
 
@@ -58,8 +58,40 @@ Total estimado: **13-19 horas** según nivel de detalle de las pruebas y captura
 - Tickets de trabajo actualizados con evidencias
 - Plan de trabajo general actualizado
 
+### ✅ Red OSPF Operativa (Fases 3 y 4)
+- **Enlaces P2P configurados:** BS.AS ↔ CÓRDOBA, BS.AS ↔ MENDOZA (CÓRDOBA ↔ MENDOZA con issue de cable)
+- **Red de backup VLAN 1000:** Operativa con conectividad completa (172.20.10.0/29)
+- **Switch SW_OSPF_BACKUP:** Configurado con trunk en native VLAN 1 (crítico)
+- **Adyacencias OSPF establecidas:**
+  - BS.AS: 4 vecinos (2 P2P + 2 backup)
+  - CÓRDOBA: 3 vecinos (1 P2P + 2 backup)
+  - MENDOZA: 3 vecinos (1 P2P + 2 backup)
+- **Rutas OSPF:** Todas las LANs visibles desde todos los routers
+- **Default route:** Propagada desde BS.AS a CÓRDOBA y MENDOZA
+
+### 🚨 Lecciones Aprendidas Críticas (Fases 3-4)
+
+**1. Native VLAN en Trunk con Subinterfaces:**
+- ⚠️ **CRÍTICO:** Cuando se usan subinterfaces con 802.1Q, el native VLAN del switch DEBE ser 1 (default)
+- ❌ **ERROR:** Configurar `switchport trunk native vlan 1000` rompe la conectividad Layer 2
+- ✅ **SOLUCIÓN:** Usar solo `switchport mode trunk` y `switchport trunk allowed vlan 1000`
+
+**2. Interfaces de Backup según Topología Física:**
+- BS.AS: Gig0/2 → Gig0/2.1000 (interface dedicada)
+- CÓRDOBA: Gig0/0 → Gig0/0.1000 (compartida con trunk al switch)
+- MENDOZA: Gig0/1 → Gig0/1.1000 (compartida con LANs y backup en mismo trunk)
+
+**3. Comandos OSPF en Packet Tracer:**
+- ❌ `ip ospf network broadcast` NO funciona en subinterfaces (error)
+- ✅ OSPF auto-detecta correctamente el tipo broadcast en subinterfaces sobre switch
+
+**4. Diagnóstico de Conectividad Layer 2:**
+- Usar `show mac address-table` en switch para verificar aprendizaje
+- Usar `show arp` en routers para detectar problemas de resolución
+- Tabla ARP vacía + MACs aprendidas = problema de native VLAN o tagging
+
 ### 🎯 Siguiente Paso
-**Fase 3:** Configurar enlaces P2P y OSPF entre Buenos Aires, Córdoba y Mendoza
+**Fase 5:** Configurar STP, WiFi y servicios locales
 
 ---
 
@@ -114,61 +146,64 @@ Checklist:
 
 ---
 
-## Fase 3: Enlaces P2P y OSPF entre sitios (4-6 h)
+## Fase 3: Enlaces P2P y OSPF entre sitios (4-6 h) ✅ COMPLETA
 **Objetivo:** Configurar conectividad entre BS.AS ↔ Córdoba ↔ Mendoza y propagar redes locales mediante OSPF.
 
 **⚠️ CAMBIO CRÍTICO:** Configurar IPs **directamente en interfaces físicas** (NO usar subinterfaces .500) debido a limitación de Packet Tracer.
 
-**Guía detallada:** Ver `03 - guia_ospf_enlaces_p2p.md`
+**Guías detalladas:** 
+- Ver `03 - PASO A PASO - OSPF y Enlaces P2P.md` para enlaces y OSPF
+- Ver `04 - PASO A PASO - Segmento CORDOBA.md` para configuración local de Córdoba
+- Ver `05 - PASO A PASO - Segmento MENDOZA.md` para configuración local de Mendoza (pendiente)
 
 Checklist:
-1. ☐ Configurar switches y routers de Córdoba (VLANs 10, 20)
-2. ☐ Configurar switches y routers de Mendoza (VLANs 44, 55, 70)
-3. ☐ Enlace P2P BS.AS ↔ Córdoba: IPs directas en interfaces físicas (ej: 10.10.1.9/30 y 10.10.1.10/30)
-4. ☐ Enlace P2P BS.AS ↔ Mendoza: IPs directas en interfaces físicas (ej: 10.10.1.1/30 y 10.10.1.2/30)
-5. ☐ Enlace P2P Córdoba ↔ Mendoza: IPs directas en interfaces físicas (ej: 10.10.1.17/30 y 10.10.1.18/30)
-6. ☐ Configurar `ip ospf network point-to-point` en cada interfaz P2P
-7. ☐ Configurar `router ospf 1` en cada sitio
-8. ☐ Anunciar redes locales: BS.AS (192.168.30.0/24), Córdoba (192.168.10.0/24, 192.168.20.0/24), Mendoza (192.168.44.0/24, 192.168.55.0/24, 192.168.70.0/24)
-9. ☐ Anunciar redes P2P en OSPF
-10. ☐ Configurar interfaces pasivas en LANs locales
-11. ☐ Configurar 2 rutas estáticas en BS.AS hacia ISP_LOCAL con **métricas diferentes**:
+1. ☑ Configurar switches y routers de Córdoba (VLANs 10, 20) - Ver Guía 04
+2. ☑ Configurar switches y routers de Mendoza (VLANs 44, 55, 70)
+3. ☑ Enlace P2P BS.AS ↔ Córdoba: Gig0/0/0 (10.10.1.9/30) ↔ Gig0/0 (10.10.1.10/30)
+4. ☑ Enlace P2P BS.AS ↔ Mendoza: Gig0/1/0 (10.10.1.1/30) ↔ Gig0/0/0 (10.10.1.2/30)
+5. ⚠️ Enlace P2P Córdoba ↔ Mendoza: Gig0/1/0 ↔ Gig0/1/0 (cable down - issue físico)
+6. ☑ Configurar `ip ospf network point-to-point` en cada interfaz P2P
+7. ☑ Configurar `router ospf 1` en cada sitio con router-id (1.1.1.1, 2.2.2.2, 3.3.3.3)
+8. ☑ Anunciar redes locales: BS.AS (192.168.30.0/24), Córdoba (192.168.10.0/24, 192.168.20.0/24), Mendoza (192.168.44.0/24, 192.168.55.0/24, 192.168.70.0/24)
+9. ☑ Anunciar redes P2P en OSPF
+10. ☑ Configurar interfaces pasivas en LANs locales
+11. ☑ Configurar 2 rutas estáticas en BS.AS hacia ISP_LOCAL con **métricas diferentes**:
     - `ip route 0.0.0.0 0.0.0.0 42.25.25.2 1`
     - `ip route 0.0.0.0 0.0.0.0 43.26.26.2 10`
-12. ☐ Configurar `default-information originate` en Router BS.AS
-13. ☐ Verificar vecindades: `show ip ospf neighbor` (estado FULL, tipo P2P)
-14. ☐ Verificar rutas: `show ip route` (rutas OSPF "O" y estáticas "S*")
-15. ☐ Pruebas de conectividad entre todos los sitios
-16. ☐ Documentar evidencias
+12. ☑ Configurar `default-information originate` en Router BS.AS
+13. ☑ Verificar vecindades: `show ip ospf neighbor` (estado FULL en enlaces disponibles)
+14. ☑ Verificar rutas: `show ip route` (rutas OSPF "O" y default route "O*E2")
+15. ☑ Pruebas de conectividad entre todos los sitios (exitosas vía enlaces disponibles)
+16. ☑ Documentar evidencias y correcciones en guía
 
-**Resultado esperado:** Todos los sitios conectados vía OSPF, ruta por defecto propagada desde BS.AS.
+**Resultado:** ✅ OSPF operativo con 2 de 3 enlaces P2P activos. Todos los routers tienen visibilidad de todas las LANs vía OSPF. Default route propagada correctamente.
 
 ---
 
-## Fase 4: VLAN 1000 / SW_OSPF_BACKUP (1-2 h)
+## Fase 4: VLAN 1000 / SW_OSPF_BACKUP (1-2 h) ✅ COMPLETA
 **Objetivo:** Implementar red de respaldo (broadcast) entre los tres routers mediante VLAN 1000.
 
 **✅ NOTA:** Esta configuración SÍ usa subinterfaces .1000 (no afectada por el cambio del profesor).
 
-**Guía detallada:** Ver sección 3.1 de `03 - guia_ospf_enlaces_p2p.md`
+**Guía detallada:** Ver `03 - PASO A PASO - OSPF y Enlaces P2P.md`
 
 Checklist:
-1. ☐ Configurar `SW_OSPF_BACKUP`: crear VLAN 1000
-2. ☐ Configurar puertos del switch en modo access VLAN 1000 hacia cada router
-3. ☐ Router BS.AS: subinterfaz Fa0/22.1000 con IP 172.20.10.1/29
-4. ☐ Router Córdoba: subinterfaz Fa0/24.1000 con IP 172.20.10.2/29
-5. ☐ Router Mendoza: subinterfaz Fa0/23.1000 con IP 172.20.10.3/29
-6. ☐ Configurar `encapsulation dot1Q 1000` en cada subinterfaz
-7. ☐ NO configurar IP en interfaces físicas (Fa0/22, Fa0/24, Fa0/23)
-8. ☐ Configurar `ip ospf network broadcast` en cada subinterfaz .1000
-9. ☐ Opcional: Configurar `ip ospf priority` para control de DR/BDR
-10. ☐ Anunciar red 172.20.10.0/29 en OSPF de cada router
-11. ☐ Verificar vecindades: `show ip ospf neighbor` (tipo DR/BDR/DROTHER)
-12. ☐ Probar conectividad: `ping` entre subinterfaces .1000
-13. ☐ Verificar estabilidad (no cambios frecuentes de DR)
-14. ☐ Documentar evidencias
+1. ☑ Configurar `SW_OSPF_BACKUP`: crear VLAN 1000
+2. ☑ Configurar puertos del switch en modo **trunk** (NO access) con VLAN 1000 allowed
+3. ☑ Router BS.AS: subinterfaz Gig0/2.1000 con IP 172.20.10.1/29
+4. ☑ Router Córdoba: subinterfaz Gig0/0.1000 con IP 172.20.10.2/29 (compartida con P2P trunk)
+5. ☑ Router Mendoza: subinterfaz Gig0/1.1000 con IP 172.20.10.3/29 (compartida con LANs)
+6. ☑ Configurar `encapsulation dot1Q 1000` en cada subinterfaz
+7. ☑ NO configurar IP en interfaces físicas
+8. ⚠️ **NO configurar** `ip ospf network broadcast` (auto-detectado correctamente)
+9. ☑ Configurar `ip ospf priority` y `ip ospf cost 50` para control y diferenciación
+10. ☑ Anunciar red 172.20.10.0/29 en OSPF de cada router
+11. ☑ Verificar vecindades: `show ip ospf neighbor` (BS.AS=DR, CÓRDOBA=BDR, MENDOZA=DROTHER)
+12. ☑ Probar conectividad: `ping` entre subinterfaces .1000 (100% éxito)
+13. ☑ **FIX CRÍTICO:** Native VLAN debe ser 1 (NO 1000) en puertos trunk del switch
+14. ☑ Documentar evidencias y lecciones aprendidas
 
-**Resultado esperado:** Red de respaldo operativa, vecindades OSPF tipo Broadcast establecidas.
+**Resultado:** ✅ Red de respaldo completamente operativa. Conectividad 172.20.10.0/29 verificada entre todos los routers. Switch aprende 3 MACs en VLAN 1000. Vecindades OSPF broadcast establecidas correctamente.
 
 ---
 
@@ -241,6 +276,26 @@ Checklist Documentación:
 ---
 
 **Última actualización:** 19/11/2025  
-**Estado del proyecto:** Reiniciado con nuevos requerimientos - 0% completado
-- Después de cada fase, actualiza `ticket_trabajo_practico.md` con fecha, responsable y evidencias adjuntas.
-- Si aparece una corrección del profesor, regresa a la fase correspondiente, ajusta y vuelve a ejecutar las verificaciones señaladas.
+**Estado del proyecto:** 67% completado - Fases 1-4 operativas
+- Infraestructura Internet ✅
+- Segmento Buenos Aires ✅
+- Enlaces P2P y OSPF ✅ (2 de 3 enlaces)
+- Red de backup VLAN 1000 ✅
+- Pendiente: STP, WiFi, NAT servicios públicos
+
+**Próximos pasos:**
+- Fase 5: Configurar STP y WiFi dual-SSID en Mendoza
+- Fase 6: NAT servicios Internet, ACL, documentación final
+- Opcional: Resolver cable P2P CÓRDOBA-MENDOZA para 4 vecinos completos
+
+**Guías actualizadas:**
+- ✅ `01 - guia_segmento_wan.md` - Configuración ISP y servidores
+- ✅ `02 - guia_segmento_bsas.md` - Segmento Buenos Aires con NAT
+- ✅ `03 - PASO A PASO - OSPF y Enlaces P2P.md` - Enlaces P2P y OSPF (nueva)
+- ✅ `04 - PASO A PASO - Segmento CORDOBA.md` - Segmento Córdoba local (nueva)
+- ⏳ `05 - PASO A PASO - Segmento MENDOZA.md` - Segmento Mendoza local (pendiente)
+- ⏳ `03 - guia_ospf_enlaces_p2p.md` - Versión detallada (pendiente actualizar)
+
+---
+
+**Nota importante:** Después de cada fase, actualiza `ticket_trabajo_practico.md` con fecha, responsable y evidencias adjuntas. Si aparece una corrección del profesor, regresa a la fase correspondiente, ajusta y vuelve a ejecutar las verificaciones señaladas.
