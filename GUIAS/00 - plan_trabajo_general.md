@@ -14,18 +14,19 @@
 ---
 
 ## Resumen por Fases
-| Fase | Alcance | Estimación | Dependencias | Estado (19/11) |
+| Fase | Alcance | Estimación | Dependencias | Estado (20/11) |
 |------|---------|------------|--------------|----------------|
 | 1 | ISP_LOCAL + Internet Cloud | 1-2 h | Ninguna | ✅ **COMPLETA** |
 | 2 | Router y Switch BS.AS (VLAN 30 + trunk) | 3-4 h | Fase 1 | ✅ **COMPLETA** |
 | 3 | Enlaces P2P y OSPF entre sitios | 4-6 h | Fases 1-2 (BS.AS operativo) | ✅ **COMPLETA** |
-| 4 | VLAN 1000 / SW_OSPF_BACKUP (Broadcast OSPF) | 1-2 h | Fase 3 | ✅ **COMPLETA** |
+| 4A | VLAN 1000 / SW_OSPF_BACKUP (Broadcast OSPF) | 1-2 h | Fase 3 | ✅ **COMPLETA** |
+| 4B | Segmento Córdoba Local (VLANs 10, 20) | 2-3 h | Fase 3 | ✅ **COMPLETA** (20/11) |
 | 5 | STP, WiFi y servicios locales (SSID, root bridges) | 2-3 h | Fases 2-4 | ⏳ Pendiente |
 | 6 | NAT Servicios Internet + pruebas integrales + documentación | 2 h | Todas las anteriores | ⏳ Pendiente |
 
-Total estimado: **13-19 horas** según nivel de detalle de las pruebas y captura de evidencias.
+Total estimado: **15-21 horas** según nivel de detalle de las pruebas y captura de evidencias.
 
-**Progreso actual: 67% - Fases 1, 2, 3 y 4 completadas (19/11/2025)**
+**Progreso actual: 75% - Fases 1, 2, 3, 4A y 4B completadas (20/11/2025)**
 
 ---
 
@@ -58,7 +59,7 @@ Total estimado: **13-19 horas** según nivel de detalle de las pruebas y captura
 - Tickets de trabajo actualizados con evidencias
 - Plan de trabajo general actualizado
 
-### ✅ Red OSPF Operativa (Fases 3 y 4)
+### ✅ Red OSPF Operativa (Fases 3 y 4A)
 - **Enlaces P2P configurados:** BS.AS ↔ CÓRDOBA, BS.AS ↔ MENDOZA (CÓRDOBA ↔ MENDOZA con issue de cable)
 - **Red de backup VLAN 1000:** Operativa con conectividad completa (172.20.10.0/29)
 - **Switch SW_OSPF_BACKUP:** Configurado con trunk en native VLAN 1 (crítico)
@@ -68,6 +69,29 @@ Total estimado: **13-19 horas** según nivel de detalle de las pruebas y captura
   - MENDOZA: 3 vecinos (1 P2P + 2 backup)
 - **Rutas OSPF:** Todas las LANs visibles desde todos los routers
 - **Default route:** Propagada desde BS.AS a CÓRDOBA y MENDOZA
+
+### ✅ Segmento Córdoba Completo (Fase 4B - 20/11/2025)
+- **Router CÓRDOBA:** Configurado con router-on-a-stick en Gig0/2
+  - Gig0/2.10: Gateway VLAN 10 (192.168.10.1/24)
+  - Gig0/2.20: Gateway VLAN 20 (192.168.20.1/24)
+  - Gig0/0.1000: Backup OSPF (172.20.10.2/29)
+  - Gig0/0/0: P2P a BS.AS (10.10.1.10/30)
+  - Interfaces pasivas configuradas en OSPF
+- **Switch DIS-CORD:** Core/Distribución operativo
+  - VLANs 10 y 20 creadas
+  - Root bridge para VLANs 10 y 20 (priority 4096)
+  - Trunk Gig0/1 hacia Router CÓRDOBA
+  - Trunk Gig0/2 hacia ACC-CORDO
+- **Switch ACC-CORDO:** Switch de acceso configurado
+  - Puertos de acceso: Fa0/1 (PC2-VLAN10), Fa0/2 (FILE SERVER-VLAN20)
+  - Trunk Gig0/2 hacia DIS-CORD con VLANs 10,20
+- **PC2 - VLAN 10:** IP 192.168.10.10/24, conectividad completa ✅
+- **FILE SERVER - VLAN 20:** IP 192.168.20.10/24, servicios activos ✅
+- **Conectividad verificada:**
+  - ✅ PC2 → Gateway (192.168.10.1)
+  - ✅ PC2 → FILE SERVER (192.168.20.10)
+  - ✅ FILE SERVER → PC2 (routing inter-VLAN)
+  - ✅ Tablas MAC correctas en todos los switches
 
 ### 🚨 Lecciones Aprendidas Críticas (Fases 3-4)
 
@@ -90,8 +114,16 @@ Total estimado: **13-19 horas** según nivel de detalle de las pruebas y captura
 - Usar `show arp` en routers para detectar problemas de resolución
 - Tabla ARP vacía + MACs aprendidas = problema de native VLAN o tagging
 
+**5. Router-on-a-Stick: Puerto TRUNK vs ACCESS (20/11/2025):**
+- ⚠️ **ERROR COMÚN:** Configurar puerto como trunk cuando debería ser access para dispositivos finales
+- ✅ **SOLUCIÓN:** 
+  - Puertos de **acceso** (PC, servers): `switchport mode access` + VLAN específica
+  - Puertos de **trunk** (switch a switch, switch a router): `switchport mode trunk` + VLANs permitidas
+  - Verificar con `show interfaces status` que los puertos estén en la VLAN correcta
+- 📝 **Ejemplo:** En ACC-CORDO, Fa0/1 debe ser ACCESS VLAN 10, NO trunk
+
 ### 🎯 Siguiente Paso
-**Fase 5:** Configurar STP, WiFi y servicios locales
+**Fase 5:** Configurar segmento Mendoza local y luego STP, WiFi y servicios
 
 ---
 
@@ -157,8 +189,8 @@ Checklist:
 - Ver `05 - PASO A PASO - Segmento MENDOZA.md` para configuración local de Mendoza (pendiente)
 
 Checklist:
-1. ☑ Configurar switches y routers de Córdoba (VLANs 10, 20) - Ver Guía 04
-2. ☑ Configurar switches y routers de Mendoza (VLANs 44, 55, 70)
+1. ☑ Configurar switches y routers de Córdoba (VLANs 10, 20) - Ver Guía 04 ✅ (20/11/2025)
+2. ☐ Configurar switches y routers de Mendoza (VLANs 44, 55, 70) - Ver Guía 05 (pendiente)
 3. ☑ Enlace P2P BS.AS ↔ Córdoba: Gig0/0/0 (10.10.1.9/30) ↔ Gig0/0 (10.10.1.10/30)
 4. ☑ Enlace P2P BS.AS ↔ Mendoza: Gig0/1/0 (10.10.1.1/30) ↔ Gig0/0/0 (10.10.1.2/30)
 5. ⚠️ Enlace P2P Córdoba ↔ Mendoza: Gig0/1/0 ↔ Gig0/1/0 (cable down - issue físico)
@@ -204,6 +236,37 @@ Checklist:
 14. ☑ Documentar evidencias y lecciones aprendidas
 
 **Resultado:** ✅ Red de respaldo completamente operativa. Conectividad 172.20.10.0/29 verificada entre todos los routers. Switch aprende 3 MACs en VLAN 1000. Vecindades OSPF broadcast establecidas correctamente.
+
+---
+
+## Fase 4B: Segmento Córdoba Local (2-3 h) ✅ COMPLETA (20/11/2025)
+**Objetivo:** Configurar el segmento local de Córdoba con VLANs 10 y 20, switches de acceso y distribución, y verificar conectividad inter-VLAN.
+
+**Guía detallada:** Ver `04 - PASO A PASO - Segmento CORDOBA.md`
+
+Checklist:
+1. ☑ Configurar Switch ACC-CORDO: VLANs 10 y 20, puertos de acceso
+2. ☑ Puerto Fa0/1: Access VLAN 10 para PC2
+3. ☑ Puerto Fa0/2: Access VLAN 20 para FILE SERVER
+4. ☑ Puerto Gig0/2: Trunk con VLANs 10,20 hacia DIS-CORD
+5. ☑ Configurar Switch DIS-CORD: VLANs 10 y 20, trunks bidireccionales
+6. ☑ Trunk Gig0/1 hacia Router CÓRDOBA con VLANs 10,20
+7. ☑ Trunk Gig0/2 hacia ACC-CORDO con VLANs 10,20
+8. ☑ Configurar STP Root Bridge: priority 4096 para VLANs 10 y 20
+9. ☑ Router CÓRDOBA: Configurar interfaz física Gig0/2 sin IP (trunk)
+10. ☑ Subinterfaz Gig0/2.10: 192.168.10.1/24 con encapsulación dot1Q 10
+11. ☑ Subinterfaz Gig0/2.20: 192.168.20.1/24 con encapsulación dot1Q 20
+12. ☑ Configurar OSPF: Interfaces pasivas en Gig0/2.10 y Gig0/2.20
+13. ☑ Configurar PC2: IP 192.168.10.10/24, gateway 192.168.10.1
+14. ☑ Configurar FILE SERVER: IP 192.168.20.10/24, gateway 192.168.20.1
+15. ☑ Verificar conectividad: PC2 → Gateway (ping exitoso)
+16. ☑ Verificar routing inter-VLAN: PC2 → FILE SERVER (ping exitoso)
+17. ☑ Verificar tablas MAC en switches (dispositivos aprendidos correctamente)
+18. ☑ Verificar tabla ARP en router (ambos dispositivos visibles)
+19. ☑ **FIX CRÍTICO:** Corregir puerto Fa0/1 de trunk a access VLAN 10
+20. ☑ Documentar configuraciones finales y pruebas exitosas
+
+**Resultado:** ✅ Segmento Córdoba completamente operativo con routing inter-VLAN funcional. Conectividad local verificada entre PC2 (VLAN 10) y FILE SERVER (VLAN 20). Router CÓRDOBA integrado correctamente con OSPF propagando redes 192.168.10.0/24 y 192.168.20.0/24.
 
 ---
 
@@ -275,24 +338,26 @@ Checklist Documentación:
 
 ---
 
-**Última actualización:** 19/11/2025  
-**Estado del proyecto:** 67% completado - Fases 1-4 operativas
+**Última actualización:** 20/11/2025  
+**Estado del proyecto:** 75% completado - Fases 1-4B operativas
 - Infraestructura Internet ✅
 - Segmento Buenos Aires ✅
 - Enlaces P2P y OSPF ✅ (2 de 3 enlaces)
 - Red de backup VLAN 1000 ✅
-- Pendiente: STP, WiFi, NAT servicios públicos
+- **Segmento Córdoba local ✅ (20/11/2025)**
+- Pendiente: Segmento Mendoza local, STP completo, WiFi, NAT servicios públicos
 
 **Próximos pasos:**
-- Fase 5: Configurar STP y WiFi dual-SSID en Mendoza
+- Configurar segmento Mendoza local (VLANs 44, 55, 70)
+- Fase 5: Configurar STP restante y WiFi dual-SSID en Mendoza
 - Fase 6: NAT servicios Internet, ACL, documentación final
 - Opcional: Resolver cable P2P CÓRDOBA-MENDOZA para 4 vecinos completos
 
 **Guías actualizadas:**
 - ✅ `01 - guia_segmento_wan.md` - Configuración ISP y servidores
 - ✅ `02 - guia_segmento_bsas.md` - Segmento Buenos Aires con NAT
-- ✅ `03 - PASO A PASO - OSPF y Enlaces P2P.md` - Enlaces P2P y OSPF (nueva)
-- ✅ `04 - PASO A PASO - Segmento CORDOBA.md` - Segmento Córdoba local (nueva)
+- ✅ `03 - PASO A PASO - OSPF y Enlaces P2P.md` - Enlaces P2P y OSPF
+- ✅ `04 - PASO A PASO - Segmento CORDOBA.md` - Segmento Córdoba local ✅ (20/11/2025)
 - ⏳ `05 - PASO A PASO - Segmento MENDOZA.md` - Segmento Mendoza local (pendiente)
 - ⏳ `03 - guia_ospf_enlaces_p2p.md` - Versión detallada (pendiente actualizar)
 
